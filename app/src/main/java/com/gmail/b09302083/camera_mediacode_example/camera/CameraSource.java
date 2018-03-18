@@ -14,7 +14,6 @@ import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.media.MediaCodec;
 import android.os.Build;
-import android.os.SystemClock;
 import android.support.annotation.RequiresPermission;
 import android.support.annotation.StringDef;
 import android.util.Log;
@@ -194,6 +193,10 @@ public class CameraSource {
 
     public void stop() {
         synchronized (mCameraLock) {
+            if(mMediaCodecUtils != null) {
+                mMediaCodecUtils.stop();
+            }
+
 //            mFrameProcessor.setActive(false);
             if (mProcessingThread != null) {
                 try {
@@ -237,7 +240,9 @@ public class CameraSource {
     public void release() {
         synchronized (mCameraLock) {
             stop();
-            mFrameProcessor.release();
+            if(mFrameProcessor != null) {
+                mFrameProcessor.release();
+            }
         }
     }
 
@@ -313,8 +318,9 @@ public class CameraSource {
         n21Convertor = mMediaCodeTest.getN21Convertor();
 
         try {
-            mMediaCodec = mMediaCodecUtils.createMediaCodec(mMediaCodeTest.getDebugger(), mMediaCodeTest.getQuality());
-            mMediaCodec.start();
+            mMediaCodec = mMediaCodecUtils
+                    .createMediaCodec(mMediaCodeTest.getDebugger(), mMediaCodeTest.getQuality());
+            mMediaCodecUtils.start();
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -337,29 +343,34 @@ public class CameraSource {
 
     private class CameraPreviewCallback implements Camera.PreviewCallback {
 
-        private ByteBuffer[] cameraData = mMediaCodec.getInputBuffers();
-
-        long now = System.nanoTime()/1000, oldnow = now, i=0;
+//        private ByteBuffer[] cameraData = mMediaCodec.getInputBuffers();
+//
+//        long now = System.nanoTime()/1000, oldnow = now, i=0;
 
         @Override
         public void onPreviewFrame(byte[] data, Camera camera) {
 
-            Log.d(TAG,"CameraPreviewCallback data: " + data);
+//            Log.d(TAG,"CameraPreviewCallback data: " + data);
 
-            oldnow = now;
-            now = System.nanoTime()/1000;
-            int bufferIndex = mMediaCodec.dequeueInputBuffer(-1);
-            if (bufferIndex>=0) {
-                cameraData[bufferIndex].clear();
+            long startTime = System.currentTimeMillis();
+            mMediaCodecUtils.encodeFrame(data);
+            long endTime = System.currentTimeMillis();
+            Log.i(TAG, Integer.toString((int)(endTime-startTime)) + "ms");
 
-                //不知道什麼原因，轉換影像會卡住!!!
-//                if (data == null) Log.e(TAG,"Symptom of the \"Callback buffer was to small\" problem...");
-//                else n21Convertor.convert(data, cameraData[bufferIndex]);
-                mMediaCodec.queueInputBuffer(bufferIndex, 0, cameraData[bufferIndex].position(), now, 0);
-                Log.d(TAG,"queueInputBuffer");
-            } else {
-                Log.e(TAG,"No buffer available !");
-            }
+//            oldnow = now;
+//            now = System.nanoTime()/1000;
+//            int bufferIndex = mMediaCodec.dequeueInputBuffer(-1);
+//            if (bufferIndex>=0) {
+//                cameraData[bufferIndex].clear();
+//
+//                //不知道什麼原因，轉換影像會卡住!!!
+////                if (data == null) Log.e(TAG,"Symptom of the \"Callback buffer was to small\" problem...");
+////                else n21Convertor.convert(data, cameraData[bufferIndex]);
+//                mMediaCodec.queueInputBuffer(bufferIndex, 0, cameraData[bufferIndex].position(), now, 0);
+//                Log.d(TAG,"queueInputBuffer");
+//            } else {
+//                Log.e(TAG,"No buffer available !");
+//            }
 
             camera.addCallbackBuffer(data);
 
