@@ -307,25 +307,25 @@ public class CameraSource {
 
         camera.setParameters(parameters);
 
-        if(mMediaCodeTest == null) {
-            MediaCodeTest.Builder builder = new MediaCodeTest.Builder(mContext);
-            mMediaCodeTest = builder.build(mPreviewSize.getWidth(), mPreviewSize.getHeight(), 30, 500000);
-            mMediaCodeTest.onStartTest();
-        }
-
+//        if(mMediaCodeTest == null) {
+//            MediaCodeTest.Builder builder = new MediaCodeTest.Builder(mContext);
+//            mMediaCodeTest = builder.build(mPreviewSize.getWidth(), mPreviewSize.getHeight(), 30, 500000);
+//            mMediaCodeTest.onStartTest();
+//        }
+//
         MediaCodecUtils.Builder builder = new MediaCodecUtils.Builder(mContext);
         mMediaCodecUtils = builder.build();
-        n21Convertor = mMediaCodeTest.getN21Convertor();
+//        n21Convertor = mMediaCodeTest.getN21Convertor();
 
         try {
 
-            if(mMediaCodeTest.getDebugger() != null && mMediaCodeTest.getQuality() != null) {
-                mMediaCodec = mMediaCodecUtils
-                        .createMediaCodec(mMediaCodeTest.getDebugger(),
-                                mMediaCodeTest.getQuality());
-            } else {
+//            if(mMediaCodeTest.getDebugger() != null && mMediaCodeTest.getQuality() != null) {
+//                mMediaCodec = mMediaCodecUtils
+//                        .createMediaCodec(mMediaCodeTest.getDebugger(),
+//                                mMediaCodeTest.getQuality());
+//            } else {
                 mMediaCodec = mMediaCodecUtils.createMediaCodec(mPreviewSize.getWidth(), mPreviewSize.getHeight());
-            }
+//            }
             mMediaCodecUtils.start();
         } catch (IOException e) {
             e.printStackTrace();

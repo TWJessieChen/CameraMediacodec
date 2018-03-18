@@ -122,6 +122,7 @@ public class MediaCodecUtils {
         Log.i(TAG, "encodeFrame()");
         long encodedSize = 0;
 //        NV21toI420SemiPlanar(input, mFrameData, this.width, this.height);
+        mFrameData = swapYV12toI420(input, this.width, this.height);
 
         ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
         ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
@@ -275,6 +276,17 @@ public class MediaCodecUtils {
             i420bytes[i] = nv21bytes[i + 1];
             i420bytes[i + 1] = nv21bytes[i];
         }
+    }
+
+    public byte[] swapYV12toI420(byte[] yv12bytes, int width, int height) {
+        byte[] i420bytes = new byte[yv12bytes.length];
+        for (int i = 0; i < width * height; i++)
+            i420bytes[i] = yv12bytes[i];
+        for (int i = width * height; i < width * height + (width / 2 * height / 2); i++)
+            i420bytes[i] = yv12bytes[i + (width / 2 * height / 2)];
+        for (int i = width * height + (width / 2 * height / 2); i < width * height + 2 * (width / 2 * height / 2); i++)
+            i420bytes[i] = yv12bytes[i - (width / 2 * height / 2)];
+        return i420bytes;
     }
 
     public void start() {
