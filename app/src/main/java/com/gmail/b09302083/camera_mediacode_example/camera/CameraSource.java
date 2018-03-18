@@ -309,7 +309,7 @@ public class CameraSource {
 
         if(mMediaCodeTest == null) {
             MediaCodeTest.Builder builder = new MediaCodeTest.Builder(mContext);
-            mMediaCodeTest = builder.build();
+            mMediaCodeTest = builder.build(mPreviewSize.getWidth(), mPreviewSize.getHeight(), 30, 500000);
             mMediaCodeTest.onStartTest();
         }
 
@@ -318,8 +318,14 @@ public class CameraSource {
         n21Convertor = mMediaCodeTest.getN21Convertor();
 
         try {
-            mMediaCodec = mMediaCodecUtils
-                    .createMediaCodec(mMediaCodeTest.getDebugger(), mMediaCodeTest.getQuality());
+
+            if(mMediaCodeTest.getDebugger() != null && mMediaCodeTest.getQuality() != null) {
+                mMediaCodec = mMediaCodecUtils
+                        .createMediaCodec(mMediaCodeTest.getDebugger(),
+                                mMediaCodeTest.getQuality());
+            } else {
+                mMediaCodec = mMediaCodecUtils.createMediaCodec(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+            }
             mMediaCodecUtils.start();
         } catch (IOException e) {
             e.printStackTrace();

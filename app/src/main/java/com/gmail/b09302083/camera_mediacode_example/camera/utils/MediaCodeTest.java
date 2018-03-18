@@ -11,8 +11,8 @@ import android.util.Log;
 public class MediaCodeTest {
     private static final String TAG = "MediaCodeTest";
 
-    protected static VideoQuality mRequestedQuality = VideoQuality.DEFAULT_VIDEO_QUALITY.clone();
-    protected static VideoQuality mQuality = mRequestedQuality.clone();
+    protected static VideoQuality mRequestedQuality = null;
+    protected static VideoQuality mQuality = null;
     protected static SharedPreferences mSettings = null;
     protected static NV21Convertor n21Convertor = null;
     protected static EncoderDebugger debugger = null;
@@ -32,8 +32,16 @@ public class MediaCodeTest {
         }
 
 
-        public MediaCodeTest build() {
+        public MediaCodeTest build(int resX, int resY, int framerate, int bitrate) {
             mMediaCodeTest.mFrameProcessor = mMediaCodeTest.new FrameProcessingRunnable();
+
+            if(mRequestedQuality == null) {
+                mRequestedQuality = VideoQuality.DEFAULT_VIDEO_QUALITY.clone();
+                mQuality = mRequestedQuality.clone();
+            } else {
+
+            }
+
             return mMediaCodeTest;
         }
 

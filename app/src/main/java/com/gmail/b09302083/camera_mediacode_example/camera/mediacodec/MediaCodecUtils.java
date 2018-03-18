@@ -5,6 +5,8 @@ import com.gmail.b09302083.camera_mediacode_example.camera.utils.VideoQuality;
 
 import android.content.Context;
 import android.media.MediaCodec;
+import android.media.MediaCodecInfo;
+import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
 import android.os.Environment;
@@ -22,10 +24,17 @@ public class MediaCodecUtils {
     private static final String TAG = "MediaCodecUtils";
 
     private static final int TIMEOUT_USEC = 10000;
+    private static final String MIME_TYPE = "video/avc"; // H.264 Advanced Video
 
     private Context mContext;
 
     private MediaCodec mMediaCodec;
+
+    private int mColorFormat;
+    private static final int FRAME_RATE = 25; // 15fps
+    private static final int IFRAME_INTERVAL = FRAME_RATE; // 10 between
+    private static final int COMPRESS_RATIO = 256;
+    private int BIT_RATE = 0;
 
     private long mStartTime = 0;
     private MediaMuxer mMuxer;
@@ -52,6 +61,7 @@ public class MediaCodecUtils {
 
     public MediaCodec createMediaCodec(EncoderDebugger debugger, VideoQuality mQuality)
             throws IOException {
+
         mMediaCodec = MediaCodec.createByCodecName(debugger.getEncoderName());
         MediaFormat mediaFormat = MediaFormat.createVideoFormat("video/avc", mQuality.resX, mQuality.resY);
 
@@ -69,10 +79,49 @@ public class MediaCodecUtils {
         return mMediaCodec;
     }
 
+    public MediaCodec createMediaCodec(int width, int height)
+            throws IOException {
+
+        this.width = width;
+        this.height = height;
+
+        MediaCodecInfo codecInfo = selectCodec(MIME_TYPE);
+        if (codecInfo == null) {
+            // Don't fail CTS if they don't have an AVC codec (not here,
+            // anyway).
+            Log.e(TAG, "Unable to find an appropriate codec for " + MIME_TYPE);
+            return null;
+        }
+        Log.e(TAG, "found codec: " + codecInfo.getName());
+        mColorFormat = selectColorFormat(codecInfo, MIME_TYPE);
+
+        Log.e(TAG, "found colorFormat: " + mColorFormat);
+        MediaFormat mediaFormat = MediaFormat.createVideoFormat(MIME_TYPE,
+                this.width, this.height);
+
+        BIT_RATE = this.height * this.width * 3 * 8 * FRAME_RATE / COMPRESS_RATIO;
+
+        mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, BIT_RATE);
+        mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, FRAME_RATE);
+        mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT, mColorFormat);
+        mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL,
+                IFRAME_INTERVAL);
+        Log.e(TAG, "format: " + mediaFormat);
+
+        mMediaCodec = MediaCodec.createByCodecName(codecInfo.getName());
+        mMediaCodec.configure(mediaFormat, null, null,
+                MediaCodec.CONFIGURE_FLAG_ENCODE);
+
+        mFrameData = new byte[this.width * this.height * 3 / 2];
+        mBufferInfo = new MediaCodec.BufferInfo();
+
+        return mMediaCodec;
+    }
+
     public void encodeFrame(byte[] input/* , byte[] output */) {
         Log.i(TAG, "encodeFrame()");
         long encodedSize = 0;
-//        NV21toI420SemiPlanar(input, mFrameData, this.mWidth, this.mHeight);
+//        NV21toI420SemiPlanar(input, mFrameData, this.width, this.height);
 
         ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
         ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
@@ -168,6 +217,65 @@ public class MediaCodecUtils {
         } while (outputBufferIndex >= 0);
     }
 
+    private static MediaCodecInfo selectCodec(String mimeType) {
+        int numCodecs = MediaCodecList.getCodecCount();
+        for (int i = 0; i < numCodecs; i++) {
+            MediaCodecInfo codecInfo = MediaCodecList.getCodecInfoAt(i);
+            if (!codecInfo.isEncoder()) {
+                continue;
+            }
+            String[] types = codecInfo.getSupportedTypes();
+            for (int j = 0; j < types.length; j++) {
+                if (types[j].equalsIgnoreCase(mimeType)) {
+                    return codecInfo;
+                }
+            }
+        }
+        return null;
+    }
+
+    private static int selectColorFormat(MediaCodecInfo codecInfo,
+            String mimeType) {
+        MediaCodecInfo.CodecCapabilities capabilities = codecInfo
+                .getCapabilitiesForType(mimeType);
+        for (int i = 0; i < capabilities.colorFormats.length; i++) {
+            int colorFormat = capabilities.colorFormats[i];
+            if (isRecognizedFormat(colorFormat)) {
+                return colorFormat;
+            }
+        }
+        Log.e(TAG,
+                "couldn't find a good color format for " + codecInfo.getName()
+                        + " / " + mimeType);
+        return 0; // not reached
+    }
+
+    /**
+     * Returns true if this is a color format that this test code understands
+     * (i.e. we know how to read and generate frames in this format).
+     */
+    private static boolean isRecognizedFormat(int colorFormat) {
+        switch (colorFormat) {
+            // these are the formats we know how to handle for this test
+            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420Planar:
+            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420PackedPlanar:
+            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420SemiPlanar:
+            case MediaCodecInfo.CodecCapabilities.COLOR_FormatYUV420PackedSemiPlanar:
+            case MediaCodecInfo.CodecCapabilities.COLOR_TI_FormatYUV420PackedSemiPlanar:
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private void NV21toI420SemiPlanar(byte[] nv21bytes, byte[] i420bytes,
+            int width, int height) {
+        System.arraycopy(nv21bytes, 0, i420bytes, 0, width * height);
+        for (int i = width * height; i < nv21bytes.length; i += 2) {
+            i420bytes[i] = nv21bytes[i + 1];
+            i420bytes[i + 1] = nv21bytes[i];
+        }
+    }
 
     public void start() {
         mMediaCodec.start();
