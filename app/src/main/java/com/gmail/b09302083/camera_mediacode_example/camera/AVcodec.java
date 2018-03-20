@@ -30,10 +30,7 @@ public class AVcodec {
     private int mWidth;
     private int mHeight;
     private MediaCodec mMediaCodec;
-    private MediaMuxer mMuxer;
     private MediaCodec.BufferInfo mBufferInfo;
-    private int mTrackIndex = -1;
-    private boolean mMuxerStarted;
     byte[] mFrameData;
     FileOutputStream mFileOutputStream = null;
     private int mColorFormat;
@@ -86,12 +83,9 @@ public class AVcodec {
 
             mStartTime = System.nanoTime();
 
-//            mMuxer = new MediaMuxer(fileName.toString(), MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
         } catch (Exception e) {
             throw new RuntimeException(e);
         }
-//        mTrackIndex = -1;
-//        mMuxerStarted = false;
     }
 
     public void encodeFrame(byte[] input) {
@@ -122,10 +116,6 @@ public class AVcodec {
             } else if (outputBufferIndex == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 MediaFormat newFormat = mMediaCodec.getOutputFormat();
                 Log.e(TAG, "encoder output format changed: " + newFormat);
-
-//                mTrackIndex = mMuxer.addTrack(newFormat);
-//                mMuxer.start();
-//                mMuxerStarted = true;
             } else if (outputBufferIndex < 0) {
                 Log.e(TAG, "unexpected result from encoder.dequeueOutputBuffer: " +
                         outputBufferIndex);
@@ -142,12 +132,6 @@ public class AVcodec {
                 }
 
                 if (mBufferInfo.size != 0) {
-//                    if (!mMuxerStarted) {
-//                        MediaFormat newFormat = mMediaCodec.getOutputFormat();
-//                        mTrackIndex = mMuxer.addTrack(newFormat);
-//                        mMuxer.start();
-//                        mMuxerStarted = true;
-//                    }
 
                     outputBuffer.position(mBufferInfo.offset);
                     outputBuffer.limit(mBufferInfo.offset + mBufferInfo.size);
@@ -170,8 +154,6 @@ public class AVcodec {
                         Log.e(TAG, "outData == null!!!");
                     }
 
-
-//                    mMuxer.writeSampleData(mTrackIndex, outputBuffer, mBufferInfo);
                 }
                 mMediaCodec.releaseOutputBuffer(outputBufferIndex, false);
             }
@@ -193,11 +175,6 @@ public class AVcodec {
             mMediaCodec.stop();
             mMediaCodec.release();
             mMediaCodec = null;
-        }
-        if (mMuxer != null) {
-            mMuxer.stop();
-            mMuxer.release();
-            mMuxer = null;
         }
     }
 
