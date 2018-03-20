@@ -144,37 +144,11 @@ public class MediaCodecUtils {
         return mMediaCodec;
     }
 
-
-
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
-    private class EncoderCallback extends MediaCodec.Callback{
-        @Override
-        public void onInputBufferAvailable(MediaCodec codec, int index) {
-            Log.d(TAG, "onInputBufferAvailable");
-        }
-
-        @Override
-        public void onOutputBufferAvailable(MediaCodec codec, int index, MediaCodec.BufferInfo info) {
-
-            Log.d(TAG, "onOutputBufferAvailable, info.size: " + info.size);
-        }
-
-        @Override
-        public void onError(MediaCodec codec, MediaCodec.CodecException e) {
-            Log.d(TAG, "Error: " + e);
-        }
-
-        @Override
-        public void onOutputFormatChanged(MediaCodec codec, MediaFormat format) {
-            Log.d(TAG, "encoder output format changed: " + format);
-        }
-    }
-
-    public void encodeFrame(byte[] input/* , byte[] output */) {
+    public void encodeFrame(byte[] input /* , byte[] output */) {
         Log.i(TAG, "encodeFrame()");
         long encodedSize = 0;
 //        NV21toI420SemiPlanar(input, mFrameData, this.width, this.height);
-//        mFrameData = swapYV12toI420(input, this.width, this.height);
+        mFrameData = swapYV12toI420(input, this.width, this.height);
 
         ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
 
@@ -250,18 +224,26 @@ public class MediaCodecUtils {
 //                    }
 
                     // adjust the ByteBuffer values to match BufferInfo (not needed?)
-                    outputBuffer.position(mBufferInfo.offset);
-                    outputBuffer.limit(mBufferInfo.offset + mBufferInfo.size);
+//                    outputBuffer.position(mBufferInfo.offset);
+//                    outputBuffer.limit(mBufferInfo.offset + mBufferInfo.size);
 
 //					write raw data
-					byte[] outData = new byte[mBufferInfo.size];
-					outputBuffer.get(outData);
-					outputBuffer.position(mBufferInfo.offset);
+//					byte[] outData = new byte[mBufferInfo.size];
+//					outputBuffer.get(outData);
+//					outputBuffer.position(mBufferInfo.offset);
 
-					if(outData != null) {
+
+
+                    int remainingSize = outputBuffer.remaining();
+                    byte[] frameByteData  = new byte[remainingSize];
+
+                    outputBuffer.get(frameByteData, 0,  remainingSize);
+
+					if(frameByteData != null) {
                         try {
-                            mFileOutputStream.write(outData);
-                            Log.i(TAG, "output data size -- > " + outData.length);
+                            mFileOutputStream.write(frameByteData);
+                            mFileOutputStream.flush();
+                            Log.i(TAG, "output data size -- > " + frameByteData.length);
                         } catch (IOException ioe) {
                             Log.w(TAG, "failed writing debug data to file");
                             throw new RuntimeException(ioe);

@@ -38,7 +38,7 @@ public class MainActivity extends AppCompatActivity {
     private void createCameraSource(boolean autoFocus, boolean useFlash) {
         CameraSource.Builder builder = new CameraSource.Builder(getApplicationContext())
                 .setFacing(CameraSource.CAMERA_FACING_BACK)
-                .setRequestedPreviewSize(1600, 1024)
+                .setRequestedPreviewSize(1440, 1080)
                 .setRequestedFps(15.0f)
                 .setMediaCodexTestClass(mMediaCodeTest);
 
