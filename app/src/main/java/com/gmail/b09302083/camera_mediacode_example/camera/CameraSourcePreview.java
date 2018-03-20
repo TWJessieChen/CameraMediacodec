@@ -110,6 +110,9 @@ public class CameraSourcePreview extends ViewGroup {
     private class SurfaceCallback implements SurfaceHolder.Callback {
         @Override
         public void surfaceCreated(SurfaceHolder surface) {
+
+            Log.d(TAG,"surfaceCreated");
+
             mSurfaceAvailable = true;
             try {
                 startIfReady();
@@ -123,10 +126,15 @@ public class CameraSourcePreview extends ViewGroup {
         @Override
         public void surfaceDestroyed(SurfaceHolder surface) {
             mSurfaceAvailable = false;
+
+            Log.d(TAG,"surfaceDestroyed");
         }
 
         @Override
         public void surfaceChanged(SurfaceHolder holder, int format, int width, int height) {
+
+            Log.d(TAG,"surfaceChanged");
+
         }
     }
 

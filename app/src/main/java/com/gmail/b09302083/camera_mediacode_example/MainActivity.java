@@ -29,11 +29,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-//        MediaCodeTest.Builder builder = new MediaCodeTest.Builder(getApplicationContext());
-//
-//        mMediaCodeTest = builder.build();
-//        mMediaCodeTest.onStartTest();
-
         mPreview = (CameraSourcePreview) findViewById(R.id.preview);
 
         createCameraSource(autoFocus, useFlash);

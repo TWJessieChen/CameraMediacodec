@@ -3,15 +3,20 @@ package com.gmail.b09302083.camera_mediacode_example.camera.mediacodec;
 import com.gmail.b09302083.camera_mediacode_example.camera.utils.EncoderDebugger;
 import com.gmail.b09302083.camera_mediacode_example.camera.utils.VideoQuality;
 
+import android.annotation.TargetApi;
 import android.content.Context;
 import android.media.MediaCodec;
 import android.media.MediaCodecInfo;
 import android.media.MediaCodecList;
 import android.media.MediaFormat;
 import android.media.MediaMuxer;
+import android.os.Build;
 import android.os.Environment;
+import android.support.annotation.RequiresApi;
 import android.util.Log;
+import android.view.Surface;
 
+import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -46,6 +51,8 @@ public class MediaCodecUtils {
     private int width;
     private int height;
 
+//    private static String fileRawData = Environment.getExternalStorageDirectory().getAbsolutePath().toString() + "_rawData";
+
     public static class Builder {
         private MediaCodecUtils mMediaCodecUtils = new MediaCodecUtils();
 
@@ -73,7 +80,7 @@ public class MediaCodecUtils {
         mediaFormat.setInteger(MediaFormat.KEY_BIT_RATE, mQuality.bitrate);
         mediaFormat.setInteger(MediaFormat.KEY_FRAME_RATE, mQuality.framerate);
         mediaFormat.setInteger(MediaFormat.KEY_COLOR_FORMAT,debugger.getEncoderColorFormat());
-        mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, 1);
+        mediaFormat.setInteger(MediaFormat.KEY_I_FRAME_INTERVAL, IFRAME_INTERVAL);
         mMediaCodec.configure(mediaFormat, null, null, MediaCodec.CONFIGURE_FLAG_ENCODE);
 
         return mMediaCodec;
@@ -108,24 +115,69 @@ public class MediaCodecUtils {
                 IFRAME_INTERVAL);
         Log.e(TAG, "format: " + mediaFormat);
 
-        mMediaCodec = MediaCodec.createByCodecName(codecInfo.getName());
+//        mMediaCodec = MediaCodec.createByCodecName(codecInfo.getName());
+        mMediaCodec = MediaCodec.createByCodecName("OMX.google.h264.encoder");
         mMediaCodec.configure(mediaFormat, null, null,
                 MediaCodec.CONFIGURE_FLAG_ENCODE);
 
         mFrameData = new byte[this.width * this.height * 3 / 2];
         mBufferInfo = new MediaCodec.BufferInfo();
 
+        String fileRawData = Environment.getExternalStorageDirectory().getAbsolutePath().toString() + "/rawData.h264";
+
+        try {
+            File file = new File(fileRawData);
+//            mFileOutputStream = mContext.openFileOutput(fileRawData,Context.MODE_WORLD_READABLE);
+
+            if (!file.exists()) {
+                 file.createNewFile();
+            }
+
+            mFileOutputStream = new FileOutputStream(file);
+
+        } catch (IOException e) {
+            System.out.println(e);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+
         return mMediaCodec;
+    }
+
+
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private class EncoderCallback extends MediaCodec.Callback{
+        @Override
+        public void onInputBufferAvailable(MediaCodec codec, int index) {
+            Log.d(TAG, "onInputBufferAvailable");
+        }
+
+        @Override
+        public void onOutputBufferAvailable(MediaCodec codec, int index, MediaCodec.BufferInfo info) {
+
+            Log.d(TAG, "onOutputBufferAvailable, info.size: " + info.size);
+        }
+
+        @Override
+        public void onError(MediaCodec codec, MediaCodec.CodecException e) {
+            Log.d(TAG, "Error: " + e);
+        }
+
+        @Override
+        public void onOutputFormatChanged(MediaCodec codec, MediaFormat format) {
+            Log.d(TAG, "encoder output format changed: " + format);
+        }
     }
 
     public void encodeFrame(byte[] input/* , byte[] output */) {
         Log.i(TAG, "encodeFrame()");
         long encodedSize = 0;
 //        NV21toI420SemiPlanar(input, mFrameData, this.width, this.height);
-        mFrameData = swapYV12toI420(input, this.width, this.height);
+//        mFrameData = swapYV12toI420(input, this.width, this.height);
 
         ByteBuffer[] inputBuffers = mMediaCodec.getInputBuffers();
-        ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
+
         int inputBufferIndex = mMediaCodec.dequeueInputBuffer(TIMEOUT_USEC);
         Log.i(TAG, "inputBufferIndex-->" + inputBufferIndex);
         if (inputBufferIndex >= 0) {
@@ -142,6 +194,12 @@ public class MediaCodecUtils {
            Log.d(TAG, "input buffer not available");
         }
 
+
+        encodeFrameOutputBuffer();
+    }
+
+    private void encodeFrameOutputBuffer() {
+        ByteBuffer[] outputBuffers = mMediaCodec.getOutputBuffers();
         int outputBufferIndex = mMediaCodec.dequeueOutputBuffer(mBufferInfo, TIMEOUT_USEC);
         Log.i(TAG, "outputBufferIndex-->" + outputBufferIndex);
         do {
@@ -159,9 +217,9 @@ public class MediaCodecUtils {
                 Log.d(TAG, "encoder output format changed: " + newFormat);
 
                 // now that we have the Magic Goodies, start the muxer
-                mTrackIndex = mMuxer.addTrack(newFormat);
-                mMuxer.start();
-                mMuxerStarted = true;
+//                mTrackIndex = mMuxer.addTrack(newFormat);
+//                mMuxer.start();
+//                mMuxerStarted = true;
             } else if (outputBufferIndex < 0) {
                 Log.w(TAG, "unexpected result from encoder.dequeueOutputBuffer: " +
                         outputBufferIndex);
@@ -183,31 +241,36 @@ public class MediaCodecUtils {
                 }
 
                 if (mBufferInfo.size != 0) {
-                    if (!mMuxerStarted) {
-//						throw new RuntimeException("muxer hasn't started");
-                        MediaFormat newFormat = mMediaCodec.getOutputFormat();
-                        mTrackIndex = mMuxer.addTrack(newFormat);
-                        mMuxer.start();
-                        mMuxerStarted = true;
-                    }
+//                    if (!mMuxerStarted) {
+////						throw new RuntimeException("muxer hasn't started");
+//                        MediaFormat newFormat = mMediaCodec.getOutputFormat();
+//                        mTrackIndex = mMuxer.addTrack(newFormat);
+//                        mMuxer.start();
+//                        mMuxerStarted = true;
+//                    }
 
                     // adjust the ByteBuffer values to match BufferInfo (not needed?)
                     outputBuffer.position(mBufferInfo.offset);
                     outputBuffer.limit(mBufferInfo.offset + mBufferInfo.size);
 
 //					write raw data
-//					byte[] outData = new byte[bufferInfo.size];
-//					outputBuffer.get(outData);
-//					outputBuffer.position(bufferInfo.offset);
+					byte[] outData = new byte[mBufferInfo.size];
+					outputBuffer.get(outData);
+					outputBuffer.position(mBufferInfo.offset);
 
-//					try {
-//						mFileOutputStream.write(outData);
-//						Log.i(TAG, "output data size -- > " + outData.length);
-//					} catch (IOException ioe) {
-//						Log.w(TAG, "failed writing debug data to file");
-//						throw new RuntimeException(ioe);
-//					}
-                    mMuxer.writeSampleData(mTrackIndex, outputBuffer, mBufferInfo);
+					if(outData != null) {
+                        try {
+                            mFileOutputStream.write(outData);
+                            Log.i(TAG, "output data size -- > " + outData.length);
+                        } catch (IOException ioe) {
+                            Log.w(TAG, "failed writing debug data to file");
+                            throw new RuntimeException(ioe);
+                        }
+                    } else {
+                        Log.e(TAG, "outData == null!!!");
+                    }
+
+//                    mMuxer.writeSampleData(mTrackIndex, outputBuffer, mBufferInfo);
                     Log.d(TAG, "sent " + mBufferInfo.size + " bytes to muxer");
 
                 }
@@ -291,21 +354,30 @@ public class MediaCodecUtils {
 
     public void start() {
         mMediaCodec.start();
-        String fileName = Environment.getExternalStorageDirectory().getAbsolutePath().toString() + "/" + this.width + "x"
-                + this.height + ".mp4";
-        try {
-            mMuxer = new MediaMuxer(fileName.toString(),
-                    MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        mTrackIndex = -1;
-        mMuxerStarted = false;
+//        String fileName = Environment.getExternalStorageDirectory().getAbsolutePath().toString() + "/" + this.width + "x"
+//                + this.height + ".mp4";
+//        try {
+//            mMuxer = new MediaMuxer(fileName.toString(),
+//                    MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//
+//        mTrackIndex = -1;
+//        mMuxerStarted = false;
 
     }
 
     public void stop() {
+         try {
+            mFileOutputStream.close();
+         } catch (IOException e) {
+            System.out.println(e);
+         } catch (Exception e) {
+            System.out.println(e);
+         }
+
+
         if(mMediaCodec != null) {
             mMediaCodec.stop();
             mMediaCodec.release();

@@ -35,11 +35,12 @@ public class MediaCodeTest {
         public MediaCodeTest build(int resX, int resY, int framerate, int bitrate) {
             mMediaCodeTest.mFrameProcessor = mMediaCodeTest.new FrameProcessingRunnable();
 
+            mRequestedQuality = new VideoQuality(resX, resY, framerate, bitrate);
+            mQuality = mRequestedQuality.clone();
+
             if(mRequestedQuality == null) {
                 mRequestedQuality = VideoQuality.DEFAULT_VIDEO_QUALITY.clone();
                 mQuality = mRequestedQuality.clone();
-            } else {
-
             }
 
             return mMediaCodeTest;

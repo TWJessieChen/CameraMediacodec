@@ -179,6 +179,7 @@ public class CameraSource {
             }
 
             mCamera = createCamera();
+            setupMediaCodec(mCamera);
             mCamera.setPreviewDisplay(surfaceHolder);
             mCamera.startPreview();
 
@@ -307,24 +308,30 @@ public class CameraSource {
 
         camera.setParameters(parameters);
 
+        return camera;
+    }
+
+    private void setupMediaCodec(Camera _camera) {
+
 //        if(mMediaCodeTest == null) {
 //            MediaCodeTest.Builder builder = new MediaCodeTest.Builder(mContext);
 //            mMediaCodeTest = builder.build(mPreviewSize.getWidth(), mPreviewSize.getHeight(), 30, 500000);
 //            mMediaCodeTest.onStartTest();
 //        }
 //
-        MediaCodecUtils.Builder builder = new MediaCodecUtils.Builder(mContext);
-        mMediaCodecUtils = builder.build();
+
 //        n21Convertor = mMediaCodeTest.getN21Convertor();
 
         try {
-
+            MediaCodecUtils.Builder builder = new MediaCodecUtils.Builder(mContext);
+            mMediaCodecUtils = builder.build();
+            mMediaCodec = mMediaCodecUtils.createMediaCodec(mPreviewSize.getWidth(), mPreviewSize.getHeight());
 //            if(mMediaCodeTest.getDebugger() != null && mMediaCodeTest.getQuality() != null) {
 //                mMediaCodec = mMediaCodecUtils
 //                        .createMediaCodec(mMediaCodeTest.getDebugger(),
 //                                mMediaCodeTest.getQuality());
 //            } else {
-                mMediaCodec = mMediaCodecUtils.createMediaCodec(mPreviewSize.getWidth(), mPreviewSize.getHeight());
+//                mMediaCodec = mMediaCodecUtils.createMediaCodec(mPreviewSize.getWidth(), mPreviewSize.getHeight());
 //            }
             mMediaCodecUtils.start();
         } catch (IOException e) {
@@ -337,15 +344,12 @@ public class CameraSource {
         //   one for the frame that is currently being executed upon in doing detection
         //   one for the next pending frame to process immediately upon completing detection
         //   two for the frames that the camera uses to populate future preview images
-        camera.setPreviewCallbackWithBuffer(new CameraPreviewCallback());
-        camera.addCallbackBuffer(createPreviewBuffer(mPreviewSize));
+        _camera.setPreviewCallbackWithBuffer(new CameraPreviewCallback());
+        _camera.addCallbackBuffer(createPreviewBuffer(mPreviewSize));
 //        camera.addCallbackBuffer(createPreviewBuffer(mPreviewSize));
 //        camera.addCallbackBuffer(createPreviewBuffer(mPreviewSize));
 //        camera.addCallbackBuffer(createPreviewBuffer(mPreviewSize));
-
-        return camera;
     }
-
 
     private class CameraPreviewCallback implements Camera.PreviewCallback {
 
